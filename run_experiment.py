@@ -5,12 +5,14 @@
 """
 
 import argparse
+import os
 
 import pandas as pd
 
 from spacecraft_ad.detectors import AutoencoderDetector, IsolationForestDetector, threshold_from_training
 from spacecraft_ad.evaluate import evaluate
 from spacecraft_ad.features import window_features
+from spacecraft_ad.plots import plot_results
 from spacecraft_ad.synthetic import generate_telemetry
 
 
@@ -41,12 +43,16 @@ def main(argv=None):
     parser.add_argument("--samples", type=int, default=20_000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--window", type=int, default=15)
+    parser.add_argument("--plot", help="save a figure of telemetry and scores to this path")
     args = parser.parse_args(argv)
 
     telemetry, labels, _ = generate_telemetry(n_samples=args.samples, seed=args.seed)
-    results, _, _ = run(telemetry, labels, window=args.window)
+    results, scores, thresholds = run(telemetry, labels, window=args.window)
     print(f"Anomalous samples: {labels.mean():.1%}")
     print(results.to_string())
+    if args.plot:
+        os.makedirs(os.path.dirname(args.plot) or ".", exist_ok=True)
+        print(f"Saved plot to {plot_results(telemetry, labels, scores, thresholds, args.plot)}")
     return results
 
 
