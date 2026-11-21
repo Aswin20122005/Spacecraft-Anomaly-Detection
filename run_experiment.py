@@ -58,6 +58,8 @@ def main(argv=None):
         telemetry, labels, _ = generate_telemetry(n_samples=args.samples, seed=args.seed)
     results, scores, thresholds = run(telemetry, labels, window=args.window, period=args.period)
 
+    print(f"Anomalous samples: {labels.mean():.1%}")
+    print(results.to_string())
     if args.repeats > 1 and not args.esa:
         # One synthetic series can be lucky or unlucky; report mean and std over seeds.
         runs = [results] + [
@@ -69,8 +71,6 @@ def main(argv=None):
         mean, std = stacked.groupby(level=1).mean(), stacked.groupby(level=1).std()
         print(f"Mean over {args.repeats} seeds (± std):")
         print((mean.round(3).astype(str) + " ± " + std.round(3).astype(str)).to_string())
-    print(f"Anomalous samples: {labels.mean():.1%}")
-    print(results.to_string())
     if args.plot:
         os.makedirs(os.path.dirname(args.plot) or ".", exist_ok=True)
         print(f"Saved plot to {plot_results(telemetry, labels, scores, thresholds, args.plot)}")
