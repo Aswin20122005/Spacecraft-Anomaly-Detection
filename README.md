@@ -37,6 +37,7 @@ pip install -r requirements.txt
 python run_experiment.py                       # synthetic data
 python run_experiment.py --repeats 5           # mean ± std over 5 seeds
 python run_experiment.py --plot results/plot.png
+python run_experiment.py --out results/metrics.json   # metrics as JSON, incl. events caught per anomaly kind
 ```
 
 ### Real ESA data
