@@ -63,3 +63,4 @@ def test_experiment_saves_metrics_json(tmp_path):
     assert data["source"] == "synthetic"
     assert set(data["results"]) == {"Isolation Forest", "Autoencoder"}
     assert 0 <= data["results"]["Autoencoder"]["pr_auc"] <= 1
+    assert set(data["events_caught_by_kind"]["Autoencoder"]) <= {"spike", "level_shift", "drift", "stuck"}

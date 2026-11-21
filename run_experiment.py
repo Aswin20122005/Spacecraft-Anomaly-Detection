@@ -55,6 +55,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     segments = None
+    by_kind = None
     if args.esa:
         telemetry, labels = load_mission(args.esa, args.channels)
     else:
@@ -86,6 +87,8 @@ def main(argv=None):
         os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
         payload = {"source": args.esa or "synthetic", "seed": args.seed, "window": args.window,
                    "anomaly_rate": round(float(labels.mean()), 4), "results": results.to_dict(orient="index")}
+        if by_kind is not None:
+            payload["events_caught_by_kind"] = by_kind.to_dict(orient="index")
         with open(args.out, "w") as f:
             json.dump(payload, f, indent=2)
         print(f"Saved metrics to {args.out}")
