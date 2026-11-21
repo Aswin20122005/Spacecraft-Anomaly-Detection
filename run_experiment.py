@@ -44,6 +44,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--samples", type=int, default=20_000)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--repeats", type=int, default=1, help="average synthetic results over this many seeds")
     parser.add_argument("--window", type=int, default=15)
     parser.add_argument("--plot", help="save a figure of telemetry and scores to this path")
     parser.add_argument("--esa", metavar="MISSION_DIR", help="use real ESA-ADB data from this folder")
@@ -56,6 +57,18 @@ def main(argv=None):
     else:
         telemetry, labels, _ = generate_telemetry(n_samples=args.samples, seed=args.seed)
     results, scores, thresholds = run(telemetry, labels, window=args.window, period=args.period)
+
+    if args.repeats > 1 and not args.esa:
+        # One synthetic series can be lucky or unlucky; report mean and std over seeds.
+        runs = [results] + [
+            run(*generate_telemetry(n_samples=args.samples, seed=args.seed + k)[:2], window=args.window,
+                period=args.period)[0]
+            for k in range(1, args.repeats)
+        ]
+        stacked = pd.concat(runs, keys=range(len(runs)))
+        mean, std = stacked.groupby(level=1).mean(), stacked.groupby(level=1).std()
+        print(f"Mean over {args.repeats} seeds (± std):")
+        print((mean.round(3).astype(str) + " ± " + std.round(3).astype(str)).to_string())
     print(f"Anomalous samples: {labels.mean():.1%}")
     print(results.to_string())
     if args.plot:
