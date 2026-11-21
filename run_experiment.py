@@ -2,6 +2,7 @@
 
     python run_experiment.py                      # synthetic telemetry
     python run_experiment.py --plot results/plot.png
+    python run_experiment.py --esa data/ESA-Mission1 --channels channel_12 channel_13
 """
 
 import argparse
@@ -10,6 +11,7 @@ import os
 import pandas as pd
 
 from spacecraft_ad.detectors import AutoencoderDetector, IsolationForestDetector, threshold_from_training
+from spacecraft_ad.esa import load_mission
 from spacecraft_ad.evaluate import evaluate
 from spacecraft_ad.features import window_features
 from spacecraft_ad.plots import plot_results
@@ -44,10 +46,16 @@ def main(argv=None):
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--window", type=int, default=15)
     parser.add_argument("--plot", help="save a figure of telemetry and scores to this path")
+    parser.add_argument("--esa", metavar="MISSION_DIR", help="use real ESA-ADB data from this folder")
+    parser.add_argument("--channels", nargs="+", default=["channel_12"], help="ESA channels to use")
+    parser.add_argument("--period", type=int, default=95, help="samples per orbit (default 95)")
     args = parser.parse_args(argv)
 
-    telemetry, labels, _ = generate_telemetry(n_samples=args.samples, seed=args.seed)
-    results, scores, thresholds = run(telemetry, labels, window=args.window)
+    if args.esa:
+        telemetry, labels = load_mission(args.esa, args.channels)
+    else:
+        telemetry, labels, _ = generate_telemetry(n_samples=args.samples, seed=args.seed)
+    results, scores, thresholds = run(telemetry, labels, window=args.window, period=args.period)
     print(f"Anomalous samples: {labels.mean():.1%}")
     print(results.to_string())
     if args.plot:
