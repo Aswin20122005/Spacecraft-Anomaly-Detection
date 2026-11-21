@@ -1,0 +1,16 @@
+# Data (download separately, see README)
+data/
+*.zip
+results/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+venv/
+
+.DS_Store
+.vscode/
+.idea/
