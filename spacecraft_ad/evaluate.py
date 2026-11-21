@@ -49,3 +49,20 @@ def evaluate(y_true, scores, threshold):
         "pr_auc": round(float(average_precision_score(y_true, scores)), 3),
         "alarm_rate": round(float(y_pred.mean()), 4),
     }
+
+
+def recall_by_kind(y_pred, segments_info, offset=0):
+    """Event recall per anomaly kind (spike, drift, ...) for synthetic segments.
+
+    segments_info: dicts with start/end/kind from generate_telemetry; offset is the
+    index where y_pred starts in the full series (the evaluated part excludes training).
+    """
+    y_pred = np.asarray(y_pred)
+    hits = {}
+    for seg in segments_info:
+        start, end = seg["start"] - offset, seg["end"] - offset
+        if end <= 0:
+            continue  # fell inside the training period
+        caught = bool(y_pred[max(start, 0):end].any())
+        hits.setdefault(seg["kind"], []).append(caught)
+    return {kind: round(float(np.mean(v)), 3) for kind, v in sorted(hits.items())}

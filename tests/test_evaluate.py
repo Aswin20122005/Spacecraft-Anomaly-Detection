@@ -33,3 +33,18 @@ def test_random_scores_have_low_pr_auc():
     y = np.array([0] * 950 + [1] * 50)
     m = evaluate(y, rng.random(1000), threshold=0.99)
     assert m["pr_auc"] < 0.2
+
+
+def test_recall_by_kind_counts_each_kind_separately():
+    from spacecraft_ad.evaluate import recall_by_kind
+
+    segs = [
+        {"start": 10, "end": 15, "kind": "spike"},
+        {"start": 20, "end": 25, "kind": "spike"},
+        {"start": 30, "end": 40, "kind": "drift"},
+        {"start": 2, "end": 4, "kind": "stuck"},  # inside the training part, skipped
+    ]
+    y_pred = np.zeros(50)
+    y_pred[12] = 1
+    y_pred[35] = 1
+    assert recall_by_kind(y_pred[5:], segs, offset=5) == {"drift": 1.0, "spike": 0.5}
