@@ -14,10 +14,10 @@ from spacecraft_ad.features import window_features
 from spacecraft_ad.synthetic import generate_telemetry
 
 
-def run(telemetry, labels, train_fraction=0.25, window=15, quantile=0.995):
+def run(telemetry, labels, train_fraction=0.25, window=15, period=95, quantile=0.995):
     """Fit on the first part of the series (assumed normal), score everything,
     and evaluate on the rest. Returns (results DataFrame, scores dict, thresholds dict)."""
-    X = window_features(telemetry, window=window)
+    X = window_features(telemetry, window=window, period=period)
     split = int(len(X) * train_fraction)
     X_train, X_test, y_test = X.iloc[:split], X.iloc[split:], labels.iloc[split:]
 
