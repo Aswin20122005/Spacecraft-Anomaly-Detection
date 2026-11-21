@@ -6,6 +6,7 @@
 """
 
 import argparse
+import json
 import os
 
 import pandas as pd
@@ -47,6 +48,7 @@ def main(argv=None):
     parser.add_argument("--repeats", type=int, default=1, help="average synthetic results over this many seeds")
     parser.add_argument("--window", type=int, default=15)
     parser.add_argument("--plot", help="save a figure of telemetry and scores to this path")
+    parser.add_argument("--out", help="save metrics as JSON to this path (for tracking results over time)")
     parser.add_argument("--esa", metavar="MISSION_DIR", help="use real ESA-ADB data from this folder")
     parser.add_argument("--channels", nargs="+", default=["channel_12"], help="ESA channels to use")
     parser.add_argument("--period", type=int, default=95, help="samples per orbit (default 95)")
@@ -80,6 +82,13 @@ def main(argv=None):
         mean, std = stacked.groupby(level=1).mean(), stacked.groupby(level=1).std()
         print(f"Mean over {args.repeats} seeds (± std):")
         print((mean.round(3).astype(str) + " ± " + std.round(3).astype(str)).to_string())
+    if args.out:
+        os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
+        payload = {"source": args.esa or "synthetic", "seed": args.seed, "window": args.window,
+                   "anomaly_rate": round(float(labels.mean()), 4), "results": results.to_dict(orient="index")}
+        with open(args.out, "w") as f:
+            json.dump(payload, f, indent=2)
+        print(f"Saved metrics to {args.out}")
     if args.plot:
         os.makedirs(os.path.dirname(args.plot) or ".", exist_ok=True)
         print(f"Saved plot to {plot_results(telemetry, labels, scores, thresholds, args.plot)}")

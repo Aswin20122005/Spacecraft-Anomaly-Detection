@@ -52,3 +52,14 @@ def test_experiment_saves_plot(tmp_path):
     out = tmp_path / "plot.png"
     run_experiment.main(["--samples", "4000", "--plot", str(out)])
     assert out.stat().st_size > 10_000
+
+
+def test_experiment_saves_metrics_json(tmp_path):
+    import json
+
+    out = tmp_path / "metrics.json"
+    run_experiment.main(["--samples", "4000", "--out", str(out)])
+    data = json.loads(out.read_text())
+    assert data["source"] == "synthetic"
+    assert set(data["results"]) == {"Isolation Forest", "Autoencoder"}
+    assert 0 <= data["results"]["Autoencoder"]["pr_auc"] <= 1
