@@ -15,16 +15,20 @@ from spacecraft_ad.synthetic import generate_telemetry
 
 
 def run(telemetry, labels, train_fraction=0.25, window=15, period=95, quantile=0.995):
-    """Fit on the first part of the series (assumed normal), score everything,
-    and evaluate on the rest. Returns (results DataFrame, scores dict, thresholds dict)."""
+    """Fit on the first part of the series (assumed normal), calibrate the threshold on
+    the end of that part, and evaluate on the rest. Returns (results DataFrame, scores dict, thresholds dict)."""
     X = window_features(telemetry, window=window, period=period)
     split = int(len(X) * train_fraction)
-    X_train, X_test, y_test = X.iloc[:split], X.iloc[split:], labels.iloc[split:]
+    fit_end = int(split * 0.8)
+    X_fit, X_val = X.iloc[:fit_end], X.iloc[fit_end:split]
+    X_test, y_test = X.iloc[split:], labels.iloc[split:]
 
     rows, scores, thresholds = [], {}, {}
     for detector in (IsolationForestDetector(), AutoencoderDetector()):
-        detector.fit(X_train)
-        threshold = threshold_from_training(detector.score(X_train), quantile)
+        detector.fit(X_fit)
+        # Threshold from a held-out slice of the normal period: scores on the data a
+        # model was fitted on are optimistically low, which made thresholds too tight.
+        threshold = threshold_from_training(detector.score(X_val), quantile)
         test_scores = detector.score(X_test)
         rows.append({"model": detector.name, **evaluate(y_test, test_scores, threshold)})
         scores[detector.name] = pd.Series(test_scores, index=X_test.index)
