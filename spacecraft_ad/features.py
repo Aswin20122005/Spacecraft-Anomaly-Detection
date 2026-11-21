@@ -16,12 +16,16 @@ DEFAULT_PERIOD = 95  # samples per orbit (minutes, for 1-minute telemetry in LEO
 
 def window_features(telemetry, window=15, period=DEFAULT_PERIOD):
     """Per channel: rolling std, first difference, deviation from a longer rolling
-    median, difference from one orbit ago and its rolling mean."""
+    median, difference from the same orbit phase (median of the last 3 orbits) and
+    its rolling mean."""
     feats = {}
     for col in telemetry.columns:
         x = telemetry[col]
         baseline = x.rolling(window * 8, min_periods=1).median()
-        orbit_diff = (x - x.shift(period)).fillna(0.0)
+        # Compare with the median of the same orbit phase over the last 3 orbits. Using
+        # just one orbit ago made every anomaly echo one orbit later.
+        past_orbits = pd.concat([x.shift(k * period) for k in (1, 2, 3)], axis=1).median(axis=1)
+        orbit_diff = (x - past_orbits).fillna(0.0)
         feats[f"{col}_std"] = x.rolling(window, min_periods=1).std().fillna(0.0)
         feats[f"{col}_diff"] = x.diff().fillna(0.0)
         feats[f"{col}_dev"] = x - baseline
