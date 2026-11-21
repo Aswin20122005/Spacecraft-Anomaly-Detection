@@ -12,7 +12,7 @@ import pandas as pd
 
 from spacecraft_ad.detectors import AutoencoderDetector, IsolationForestDetector, threshold_from_training
 from spacecraft_ad.esa import load_mission
-from spacecraft_ad.evaluate import evaluate
+from spacecraft_ad.evaluate import evaluate, recall_by_kind
 from spacecraft_ad.features import window_features
 from spacecraft_ad.plots import plot_results
 from spacecraft_ad.synthetic import generate_telemetry
@@ -52,14 +52,23 @@ def main(argv=None):
     parser.add_argument("--period", type=int, default=95, help="samples per orbit (default 95)")
     args = parser.parse_args(argv)
 
+    segments = None
     if args.esa:
         telemetry, labels = load_mission(args.esa, args.channels)
     else:
-        telemetry, labels, _ = generate_telemetry(n_samples=args.samples, seed=args.seed)
+        telemetry, labels, segments = generate_telemetry(n_samples=args.samples, seed=args.seed)
     results, scores, thresholds = run(telemetry, labels, window=args.window, period=args.period)
 
     print(f"Anomalous samples: {labels.mean():.1%}")
     print(results.to_string())
+    if segments:
+        offset = len(telemetry) - len(next(iter(scores.values())))
+        by_kind = pd.DataFrame({
+            name: recall_by_kind((s.to_numpy() > thresholds[name]).astype(int), segments, offset)
+            for name, s in scores.items()
+        }).T
+        print("\nEvents caught by anomaly kind:")
+        print(by_kind.to_string())
     if args.repeats > 1 and not args.esa:
         # One synthetic series can be lucky or unlucky; report mean and std over seeds.
         runs = [results] + [
